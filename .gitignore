@@ -1,0 +1,8 @@
+includes
+bin
+obj
+.vscode
+Makefile
+*.make
+tests/bin
+tests/lib
