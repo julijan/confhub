@@ -11,7 +11,7 @@ project "confhub"
 	includedirs { "./includes/src", "./includes/src/**", "./includes/uses/src/**" }
 	libdirs { "./includes/lib/**", "./includes/uses/lib/**" }
 	links {
-		
+		"print-nice", "text-styled"
 	}
 	filter "configurations:Debug"
 		defines { "DEBUG" }
