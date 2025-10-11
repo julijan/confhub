@@ -6,3 +6,4 @@ Makefile
 *.make
 tests/bin
 tests/lib
+.cache
