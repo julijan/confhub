@@ -1,6 +1,5 @@
 #include "Types.h"
 #include "ConfTokenizer.h"
-#include <vector>
 // ConfDeclarationParser parses configuration declaration files
 // configuration declaration uses the same syntax as TypeScript
 
@@ -29,13 +28,14 @@ public:
 	void load(const std::string& fileName);
 
 	void parse();
+	
+	ConfigFieldType stringToType(const std::string& type) const;
+	std::string typeToString(ConfigFieldType type) const;
 
 private:
 	std::string content;
 	ConfTokenizer* tokenizer;
 	ConfigContainerFieldDeclaration* context;
 
-	ConfigFieldType stringToType(const std::string& type) const;
-	std::string typeToString(ConfigFieldType type) const;
 
 };
