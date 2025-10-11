@@ -1,6 +1,5 @@
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -39,16 +38,10 @@ void ConfDeclarationParser::load(const std::string& fileName) {
 	}
 
 	std::string buffer;
-	// while (!stream.eof()) {
-	// 	stream >> buffer;
-	// 	this->content += buffer;
-	// }
 	while (std::getline(stream, buffer)) {
 		this->content += buffer + "\n";
 	}
 	stream.close();
-
-	std::cout << this->content;
 }
 
 void ConfDeclarationParser::parse() {
