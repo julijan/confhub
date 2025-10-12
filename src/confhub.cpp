@@ -25,6 +25,9 @@ int main(int argc, char** argv) {
 				std::cin >> configName;
 			}
 
+			// clear cin buffer
+			std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
 			Configure conf(configName, argv[2]);
 			conf.interactive();
 			
