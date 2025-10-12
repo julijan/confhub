@@ -3,6 +3,7 @@
 #include "print-nice/PrintNice.h"
 
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -93,6 +94,41 @@ int main(int argc, char** argv) {
 				ConfRegistry registry;
 				registry.deleteConfiguration(argv[2]);
 				print.success("Configuration deleted");
+				return 0;
+			} catch(std::runtime_error e) {
+				print.error(std::string("Error: ") + e.what());
+				return 1;
+			}
+		}
+
+		if (strcmp(command, "export") == 0) {
+			// export configuration
+			if (commandArgCount == 0) {
+				print.error("Expected configuration name");
+				return 1;
+			}
+
+			if (commandArgCount == 1) {
+				print.error("Expected path to output file");
+				return 1;
+			}
+
+			try {
+				ConfRegistry registry;
+				auto config = registry.getConfiguration(argv[2]);
+				std::ofstream streamOut;
+				streamOut.open(argv[3]);
+
+				if (!streamOut.is_open()) {
+					throw std::runtime_error(std::string("Error opening ") + argv[3] + " for writing");
+					return 1;
+				}
+
+				streamOut << config;
+				streamOut.flush();
+				streamOut.close();
+
+				print.success("Configuration exported");
 				return 0;
 			} catch(std::runtime_error e) {
 				print.error(std::string("Error: ") + e.what());
