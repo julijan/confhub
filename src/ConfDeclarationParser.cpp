@@ -47,6 +47,7 @@ void ConfDeclarationParser::load(const std::string& fileName) {
 void ConfDeclarationParser::parse() {
 	std::string name = "";
 	std::string type = "";
+	std::string elementType = "";
 	while (this->tokenizer->peekNext().type != ConfTokenType::End) {
 		ConfToken token = this->tokenizer->next();
 		ConfToken tokenNext = this->tokenizer->peekNext();
@@ -96,7 +97,6 @@ void ConfDeclarationParser::parse() {
 			throw std::runtime_error("Expected symbol at " + std::to_string(token.start));
 		}
 
-		tokenNext = this->tokenizer->peekNext();
 		type = token.value;
 
 		if (type != "number" && type != "string" && type != "boolean" && type != "Array") {
@@ -105,16 +105,54 @@ void ConfDeclarationParser::parse() {
 			);
 		}
 
-		if (tokenNext.type != ConfTokenType::Semicolon) {
-			throw std::runtime_error("Expexted semicolon at " + std::to_string(token.start));
+		// if Array, expect element type definition
+		if (type == "Array") {
+			// expect <
+			token = this->tokenizer->next();
+			if (token.type != ConfTokenType::LessThan) {
+				throw std::runtime_error("Expected < at " +  std::to_string(token.start));
+			}
+
+			// expect type (element type)
+			token = this->tokenizer->next();
+			if (token.type != ConfTokenType::Symbol) {
+				throw std::runtime_error("Expected symbol at " + std::to_string(token.start));
+			}
+
+			if (token.value == "Array") {
+				throw std::runtime_error(
+					"Multi-dimensional arrays not supported at" + std::to_string(token.start)
+				);
+			}
+
+			if (token.value != "number" && token.value != "string" && token.value != "boolean") {
+				throw std::runtime_error(
+					"Expected type name, found " + token.value + " at " + std::to_string(token.start)
+				);
+			}
+			
+			elementType = token.value;
+
+			// expect >
+			token = this->tokenizer->next();
+			if (token.type != ConfTokenType::GreaterThan) {
+				throw std::runtime_error("Expected > at " +  std::to_string(token.start));
+			}
 		}
 
-		// consume semicolon
-		this->tokenizer->next();
+		token = this->tokenizer->next();
+		if (token.type != ConfTokenType::Semicolon) {
+			throw std::runtime_error("Expexted semicolon at " + std::to_string(token.start));
+		}
 
 		ConfigFieldDeclaration field;
 		field.name = name;
 		field.type = this->stringToType(type);
+
+		if (field.type == ConfigFieldType::Array) {
+			field.childType = this->stringToType(elementType);
+		}
+
 		this->context->children.push_back(field);
 
 		// if followed by closing brace switch context to parent of current context
@@ -158,7 +196,7 @@ std::string ConfDeclarationParser::typeToString(ConfigFieldType type) const {
 		case ConfigFieldType::Number: return "number";
 		case ConfigFieldType::String: return "string";
 		case ConfigFieldType::Boolean: return "boolean";
-		case ConfigFieldType::Array: return "array";
+		case ConfigFieldType::Array: return "Array";
 		case ConfigFieldType::Container: return "container";
 		case ConfigFieldType::Never: return "never";
 	}

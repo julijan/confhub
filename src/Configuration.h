@@ -21,6 +21,11 @@ public:
 	// add boolean to current context
 	void addBoolean(const std::string& key, bool value);
 
+	// add vector to current context
+	void addNumberVector(const std::string& key, std::vector<float>);
+	void addStringVector(const std::string& key, std::vector<std::string>);
+	void addBooleanVector(const std::string& key, std::vector<bool>);
+
 	// add a new container to current context and switch context to new container
 	void addContainer(const std::string& key);
 

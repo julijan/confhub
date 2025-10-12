@@ -1,6 +1,7 @@
 #include "Configuration.h"
 #include <sstream>
 #include <string>
+#include <vector>
 
 Configuration::Configuration() {
 	// initialize with context being the root object
@@ -23,6 +24,30 @@ void Configuration::addString(const std::string& key, const std::string& value) 
 
 void Configuration::addBoolean(const std::string& key, bool value) {
 	(*this->context)[key] = value;
+}
+
+void Configuration::addNumberVector(const std::string& key, std::vector<float> values) {
+	boost::json::array arr = boost::json::array();
+	for (float val: values) {
+		arr.push_back(val);
+	}
+	(*this->context)[key] = arr;
+}
+
+void Configuration::addStringVector(const std::string& key, std::vector<std::string> values) {
+	boost::json::array arr = boost::json::array();
+	for (const std::string& val: values) {
+		arr.push_back(val.c_str());
+	}
+	(*this->context)[key] = arr;
+}
+
+void Configuration::addBooleanVector(const std::string& key, std::vector<bool> values) {
+	boost::json::array arr = boost::json::array();
+	for (bool val: values) {
+		arr.push_back(val);
+	}
+	(*this->context)[key] = arr;
 }
 
 void Configuration::addContainer(const std::string& key) {

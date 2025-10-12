@@ -17,7 +17,7 @@ private:
 	// interactively configure given container, called by interactive()
 	void interactive(const ConfigContainerFieldDeclaration& container, std::string& confPath);
 
-	ConfDeclarationParser parser;
+	ConfDeclarationParser parserDeclaration;
 	std::string name;
 	Configuration conf;
 };
