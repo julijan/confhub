@@ -63,6 +63,7 @@ ConfToken ConfTokenizer::peekNext() {
 		if (this->numericChar()) {
 			// found begining of a number literal
 			token.type = ConfTokenType::Number;
+			token.value += current;
 			this->offset++;
 			bool decimalPointFound = false;
 			while (this->numericChar() || (this->current() == '.' && !decimalPointFound) && !this->isEnd()) {
