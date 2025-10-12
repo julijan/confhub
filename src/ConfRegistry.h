@@ -1,0 +1,31 @@
+#pragma once
+
+#include <filesystem>
+#include <string>
+
+#include "json/object.hpp"
+
+class ConfRegistry {
+public:
+	// store given declaration + configuration to a json file
+	static void create(
+		const std::string& name,
+		const std::string& declaration,
+		const boost::json::object& configuration
+	);
+
+private:
+	// check if configuration with given name exists
+	static bool exists(const std::string& name);
+
+	// create necessary directories (unless they already exist)
+	static void install();
+
+	// whatever ~/.confhub resolves to
+	static std::filesystem::path appPath();
+
+	// whatever ~/.confhub/config resolves to
+	static std::filesystem::path confPath();
+	static std::filesystem::path confPath(const std::string& name);
+	
+};
