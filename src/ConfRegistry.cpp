@@ -34,6 +34,34 @@ void ConfRegistry::create(
 	);
 }
 
+boost::json::object ConfRegistry::get(const std::string& name) {
+	if (!ConfRegistry::exists(name)) {
+		throw std::runtime_error("Configuration with name " + name + " does not exist");
+	}
+
+	boost::json::object confObj = utils::json::read(ConfRegistry::confPath(name)).as_object();
+
+	// make sure the object is valid
+	if (!confObj.contains("declaration")) {
+		throw std::runtime_error("Configuration object is missing the declaration");
+	}
+	if (!confObj.contains("configuration")) {
+		throw std::runtime_error("Configuration object is missing the configuration");
+	}
+
+	return confObj;
+}
+
+std::string ConfRegistry::getDeclaration(const std::string& name) {
+	boost::json::object confObj = ConfRegistry::get(name);
+	return confObj["declaration"].as_string().c_str();
+}
+
+boost::json::object ConfRegistry::getConfiguration(const std::string& name) {
+	boost::json::object confObj = ConfRegistry::get(name);
+	return confObj["configuration"].as_object();
+}
+
 bool ConfRegistry::exists(const std::string& name) {
 	return utils::fs::exists(ConfRegistry::confPath(name));
 }

@@ -14,6 +14,15 @@ public:
 		const boost::json::object& configuration
 	);
 
+	// return validated config object given configuration name
+	static boost::json::object get(const std::string& name);
+
+	// return declaration given configuration name
+	static std::string getDeclaration(const std::string& name);
+
+	// return configuration given configuration name
+	static boost::json::object getConfiguration(const std::string& name);
+
 private:
 	// check if configuration with given name exists
 	static bool exists(const std::string& name);
