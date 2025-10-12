@@ -1,8 +1,10 @@
+#include "ConfRegistry.h"
 #include "Configure.h"
 #include "print-nice/PrintNice.h"
 
 #include <cstring>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 int main(int argc, char** argv) {
@@ -10,9 +12,13 @@ int main(int argc, char** argv) {
 	PrintNice print;
 
 	if (argc > 1) {
-		if (strcmp(argv[1], "configure") == 0) {
+
+		const char* command = argv[1];
+		int commandArgCount = argc - 2;
+
+		if (strcmp(command, "configure") == 0) {
 			// interactive configure
-			if (argc < 3) {
+			if (commandArgCount == 0) {
 				// must provide a path to declaration
 				print.error("Expected path to configuration declaration file");
 				return 1;
@@ -31,6 +37,24 @@ int main(int argc, char** argv) {
 			Configure conf(configName, argv[2]);
 			conf.interactive();
 			
+			return 0;
+		}
+
+		if (strcmp(command, "declaration") == 0) {
+			// show declaration
+			if (commandArgCount == 0) {
+				print.error("Expected configuration name");
+				return 1;
+			}
+
+			try {
+				ConfRegistry registry;
+				print.print(registry.getDeclaration(argv[2]).c_str());
+				return 0;
+			} catch(std::runtime_error e) {
+				print.error(std::string("Error: ") + e.what());
+				return 1;
+			}
 		}
 	} else {
 		// command not provided
