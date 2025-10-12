@@ -1,5 +1,6 @@
 #pragma once
 #include "ConfDeclarationParser.h"
+#include "Configuration.h"
 #include <string>
 
 class Configure {
@@ -18,4 +19,5 @@ private:
 
 	ConfDeclarationParser parser;
 	std::string name;
+	Configuration conf;
 };

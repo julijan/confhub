@@ -16,6 +16,8 @@ Configure::Configure(
 
 void Configure::interactive() {
 	this->interactive(this->parser.configRoot, this->name);
+	// at this point, all configuration values are set
+	std::cout << this->conf.string();
 }
 
 void Configure::interactive(const ConfigContainerFieldDeclaration& container, std::string& confPath) {
@@ -23,8 +25,16 @@ void Configure::interactive(const ConfigContainerFieldDeclaration& container, st
 		if (std::holds_alternative<ConfigContainerFieldDeclaration>(child)) {
 			// another container, recurse
 			ConfigContainerFieldDeclaration containerNext = std::get<ConfigContainerFieldDeclaration>(child);
+			
+			// add container to JSON config
+			this->conf.addContainer(containerNext.name);
+			
+			// resume from container
 			std::string confPathNext = confPath + "." + containerNext.name;
-			this->interactive(std::get<ConfigContainerFieldDeclaration>(child), confPathNext);
+			this->interactive(containerNext, confPathNext);
+
+			// when current container is configured, jump to previous context
+			this->conf.contextPrev();
 		} else {
 			// field, prompt for value
 			PrintNice print;
@@ -57,6 +67,35 @@ void Configure::interactive(const ConfigContainerFieldDeclaration& container, st
 
 				std::cin >> value;
 				if (this->valid(field, value)) {
+
+					ConfTokenizer tokenizer(value);
+					ConfToken token = tokenizer.next();
+
+					// entered value is valid, add to config
+					switch (field.type) {
+						case ConfigFieldType::Number: {
+							bool isFloat = value.find(".") != std::string::npos;
+							if (isFloat) {
+								this->conf.addNumber(field.name, std::stof(token.value));
+							} else {
+								this->conf.addNumber(field.name, std::stoi(token.value));
+							}
+							break;
+						}
+							
+						case ConfigFieldType::String: {
+							this->conf.addString(field.name, token.value);
+							break;
+						}
+
+						case ConfigFieldType::Boolean: {
+							this->conf.addBoolean(field.name, token.value == "true");
+						}
+
+						default: { break; }
+					}
+
+					// value was valid and added to conf, nothing else to be done for current field
 					break;
 				}
 				print.error("Invalid value, expected " + this->parser.typeToString(field.type));
