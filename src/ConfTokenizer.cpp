@@ -83,8 +83,8 @@ ConfToken ConfTokenizer::peekNext() {
 			bool decimalPointFound = false;
 			while (this->numericChar() || (this->current() == '.' && !decimalPointFound) && !this->isEnd()) {
 				token.value += this->current();
-				token.end = this->offset;
 				this->offset++;
+				token.end = this->offset;
 			}
 			break;
 		}
