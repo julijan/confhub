@@ -148,3 +148,12 @@ std::filesystem::path ConfRegistry::confPath(const std::string& name) {
 		{ confFileName.c_str() }
 	);
 }
+
+void ConfRegistry::deleteConfiguration(const std::string& name) {
+	if (!ConfRegistry::exists(name)) {
+		throw std::runtime_error("Configuration " + name + " does not exist");
+	}
+	// delete config file
+	std::filesystem::path confPath = ConfRegistry::confPath(name);
+	std::filesystem::remove(confPath);
+}

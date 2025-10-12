@@ -27,6 +27,8 @@ public:
 	// query is a dot delimited path within the configuration
 	static boost::json::value getConfiguration(const std::string& name, const std::string& query);
 
+	static void deleteConfiguration(const std::string& name);
+
 private:
 	// check if configuration with given name exists
 	static bool exists(const std::string& name);

@@ -82,6 +82,24 @@ int main(int argc, char** argv) {
 			}
 		}
 
+		if (strcmp(command, "delete") == 0) {
+			// delete configuration
+			if (commandArgCount == 0) {
+				print.error("Expected configuration name");
+				return 1;
+			}
+
+			try {
+				ConfRegistry registry;
+				registry.deleteConfiguration(argv[2]);
+				print.success("Configuration deleted");
+				return 0;
+			} catch(std::runtime_error e) {
+				print.error(std::string("Error: ") + e.what());
+				return 1;
+			}
+		}
+
 	} else {
 		// command not provided
 		// TODO: show help
