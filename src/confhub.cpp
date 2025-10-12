@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -56,6 +57,31 @@ int main(int argc, char** argv) {
 				return 1;
 			}
 		}
+
+		if (strcmp(command, "query") == 0) {
+			// query configuration
+			if (commandArgCount == 0) {
+				print.error("Expected configuration name");
+				return 1;
+			}
+
+			try {
+				std::stringstream conf;
+				ConfRegistry registry;
+				if (commandArgCount == 1) {
+					conf << registry.getConfiguration(argv[2]);
+				} else {
+					// query provided, narrow to queried
+					conf << registry.getConfiguration(argv[2], argv[3]);
+				}
+				print.print(conf.str().c_str());
+				return 0;
+			} catch(std::runtime_error e) {
+				print.error(std::string("Error: ") + e.what());
+				return 1;
+			}
+		}
+
 	} else {
 		// command not provided
 		// TODO: show help
