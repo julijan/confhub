@@ -10,6 +10,9 @@ class Configuration {
 public:
 	Configuration();
 
+	// set given json object as configuration root
+	void setJSON(const boost::json::object& json);
+
 	// add number to current context
 	void addNumber(const std::string& key, int value);
 	// add float to current context

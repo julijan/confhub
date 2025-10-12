@@ -10,6 +10,11 @@ Configuration::Configuration() {
 	this->contextStack.push(this->context);
 }
 
+void Configuration::setJSON(const boost::json::object& json) {
+	this->confRoot = json;
+	this->context = &this->confRoot;
+}
+
 void Configuration::addNumber(const std::string& key, int value) {
 	(*this->context)[key] = value;
 }
