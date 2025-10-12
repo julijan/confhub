@@ -23,11 +23,15 @@ public:
 	// holds the parsed configuration
 	ConfigContainerFieldDeclaration configRoot;
 
+	ConfDeclarationParser();
 	ConfDeclarationParser(const std::string& fileName);
 	~ConfDeclarationParser();
 
 	// load declaration contents from given file to content
 	void load(const std::string& fileName);
+
+	// set declaration given as string
+	void setDeclaration(const std::string& declaration);
 
 	// parse declaration contents, configuration is nested within configRoot
 	void parse();

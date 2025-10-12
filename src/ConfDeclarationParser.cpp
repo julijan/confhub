@@ -4,8 +4,9 @@
 #include <string>
 
 #include "ConfDeclarationParser.h"
+#include "ConfTokenizer.h"
 
-ConfDeclarationParser::ConfDeclarationParser(const std::string& fileName) {
+ConfDeclarationParser::ConfDeclarationParser() {
 	// init config root
 	this->configRoot.name = "root";
 	this->configRoot.type = ConfigFieldType::Container;
@@ -14,11 +15,14 @@ ConfDeclarationParser::ConfDeclarationParser(const std::string& fileName) {
 	// set context to config root
 	this->context = &this->configRoot;
 
-	// load config from file
-	this->load(fileName);
-
 	// initialize tokenizer
 	this->tokenizer = new ConfTokenizer(this->content);
+}
+
+ConfDeclarationParser::ConfDeclarationParser(const std::string& fileName): ConfDeclarationParser() {
+	// load config from file
+	this->load(fileName);
+	this->tokenizer->setConfig(this->content);
 }
 
 ConfDeclarationParser::~ConfDeclarationParser() {
@@ -42,6 +46,11 @@ void ConfDeclarationParser::load(const std::string& fileName) {
 		this->content += buffer + "\n";
 	}
 	stream.close();
+}
+
+void ConfDeclarationParser::setDeclaration(const std::string& declaration) {
+	this->content = declaration;
+	this->tokenizer->setConfig(this->content);
 }
 
 void ConfDeclarationParser::parse() {
@@ -142,7 +151,7 @@ void ConfDeclarationParser::parse() {
 
 		token = this->tokenizer->next();
 		if (token.type != ConfTokenType::Semicolon) {
-			throw std::runtime_error("Expexted semicolon at " + std::to_string(token.start));
+			throw std::runtime_error("Expected semicolon at " + std::to_string(token.start));
 		}
 
 		ConfigFieldDeclaration field;
@@ -158,7 +167,7 @@ void ConfDeclarationParser::parse() {
 		// if followed by closing brace switch context to parent of current context
 		if (this->tokenizer->peekNext().type == ConfTokenType::BraceClose) {
 			if (this->context->parent == nullptr) {
-				throw std::runtime_error("Unexpexted closing brace at " + std::to_string(token.start));
+				throw std::runtime_error("Unexpected closing brace at " + std::to_string(token.start));
 			}
 
 			this->context = this->context->parent;
