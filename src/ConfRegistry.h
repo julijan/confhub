@@ -27,6 +27,13 @@ public:
 	// query is a dot delimited path within the configuration
 	static boost::json::value getConfiguration(const std::string& name, const std::string& query);
 
+	// abstraction for querying the configuration object
+	static boost::json::value query(
+		boost::json::object& conf,
+		const std::string& query,
+		const std::string& name = "" // name only used to display in errors
+	);
+
 	static void deleteConfiguration(const std::string& name);
 
 private:

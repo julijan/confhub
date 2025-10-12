@@ -74,6 +74,14 @@ boost::json::value ConfRegistry::getConfiguration(const std::string& name) {
 
 boost::json::value ConfRegistry::getConfiguration(const std::string& name, const std::string& query) {
 	boost::json::object conf = ConfRegistry::getConfiguration(name).as_object();
+	return ConfRegistry::query(conf, query, name);
+}
+
+boost::json::value ConfRegistry::query(
+	boost::json::object& conf,
+	const std::string& query,
+	const std::string& name
+) {
 
 	boost::json::object& context = conf;
 
