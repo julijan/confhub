@@ -112,14 +112,17 @@ ConfToken ConfTokenizer::peekNext() {
 
 			while (this->current() != '"' && !this->isEnd()) {
 				token.value += this->current();
-				token.end = this->offset;
 				this->offset++;
+				token.end = this->offset;
 			}
 
 			if (this->current() != '"') {
 				// missing closing " for the string
 				throw std::runtime_error("Missing closing \"");
 			}
+
+			// move end to after the closing "
+			token.end++;
 
 			// string complete
 			break;
