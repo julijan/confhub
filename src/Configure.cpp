@@ -130,6 +130,7 @@ void Configure::interactive(const ConfigContainerFieldDeclaration& container, st
 	
 							case ConfigFieldType::Boolean: {
 								this->conf.addBoolean(field.name, token.value == "true");
+								break;
 							}
 	
 							default: { break; }
@@ -169,6 +170,162 @@ void Configure::interactive(const ConfigContainerFieldDeclaration& container, st
 			}
 		}
 	}
+}
+
+void Configure::fromFile(const std::string& confFile) {
+	boost::json::value conf = utils::json::read(confFile);
+	if (!conf.is_object()) {
+		throw std::runtime_error("Configuration is expected to be an object");
+	}
+	Configure::fromContainer(
+		this->parserDeclaration.configRoot,
+		conf.as_object(),
+		this->name
+	);
+
+	// store to config file
+	PrintNice print;
+	try {
+		ConfRegistry registry;
+		registry.create(
+			this->name,
+			this->parserDeclaration.declaration(),
+			this->conf.json()
+		);
+
+		print.success("Configuration saved");
+	} catch (std::runtime_error e) {
+		print.error(std::string("Error saving configuration: ") + e.what());
+	}
+}
+
+void Configure::fromContainer(
+	const ConfigContainerFieldDeclaration& declaration,
+	boost::json::object& values,
+	const std::string& confPath
+) {
+
+	for (auto& child: declaration.children) {
+		if (std::holds_alternative<ConfigContainerFieldDeclaration>(child)) {
+			// another container, recurse
+			ConfigContainerFieldDeclaration containerNext = std::get<ConfigContainerFieldDeclaration>(child);
+
+			if (!values.contains(containerNext.name)) {
+				throw std::runtime_error("Missing key " + confPath + "." + containerNext.name);
+			}
+
+			auto valuesNext = values[containerNext.name];
+
+			if (!valuesNext.is_object()) {
+				throw std::runtime_error( confPath + "." + containerNext.name + " is not an object");
+			}
+			
+			// add container to JSON config
+			this->conf.addContainer(containerNext.name);
+			
+			// resume from container
+			std::string confPathNext = confPath + "." + containerNext.name;
+			this->fromContainer(
+				containerNext,
+				valuesNext.as_object(),
+				confPathNext
+			);
+
+			// when current container is configured, jump to previous context
+			this->conf.contextPrev();
+		} else {
+			// field
+			ConfigFieldDeclaration field = std::get<ConfigFieldDeclaration>(child);
+
+			// make sure key exists in values
+			if (!values.contains(field.name)) {
+				throw std::runtime_error("Missing key " + confPath + "." + field.name);
+			}
+
+			auto value = values[field.name];
+
+			// entered value is valid, add to config
+			switch (field.type) {
+				case ConfigFieldType::Number: {
+					if (!value.is_number()) {
+						throw std::runtime_error(confPath + " expected to be a number");
+					}
+					this->conf.addNumber(field.name, (float)value.as_int64());
+					break;
+				}
+					
+				case ConfigFieldType::String: {
+					if (!value.is_string()) {
+						throw std::runtime_error(confPath + " expected to be a string");
+					}
+					this->conf.addString(field.name, value.as_string().c_str());
+					break;
+				}
+
+				case ConfigFieldType::Boolean: {
+					if (!value.is_bool()) {
+						throw std::runtime_error(confPath + " expected to be a boolean");
+					}
+					this->conf.addBoolean(field.name, value.as_bool());
+					break;
+				}
+
+				case ConfigFieldType::Array: {
+					if (!value.is_array()) {
+						throw std::runtime_error(confPath + " expected to be an array");
+					}
+
+					// value is an array, make sure elements are of expected type
+					boost::json::array& arr = value.as_array();
+
+					for (auto el: arr) {
+						if (field.childType == ConfigFieldType::Number && !el.is_number()) {
+							throw std::runtime_error(
+								"Some elements of array at " + confPath + " are not a number"
+							);
+						}
+
+						if (field.childType == ConfigFieldType::String && !el.is_string()) {
+							throw std::runtime_error(
+								"Some elements of array at " + confPath + " are not a string"
+							);
+						}
+
+						if (field.childType == ConfigFieldType::Boolean && !el.is_bool()) {
+							throw std::runtime_error(
+								"Some elements of array at " + confPath + " are not a boolean"
+							);
+						}
+					}
+
+					// element types correct
+					if (field.childType == ConfigFieldType::Number) {
+						std::vector<float> numbers;
+						for (auto el: arr) {
+							numbers.push_back(el.as_int64());
+						}
+						this->conf.addNumberVector(field.name, numbers);
+					} else if (field.childType == ConfigFieldType::String) {
+						std::vector<std::string> strings;
+						for (auto el: arr) {
+							strings.push_back(el.as_string().c_str());
+						}
+						this->conf.addStringVector(field.name, strings);
+					} else if (field.childType == ConfigFieldType::Boolean) {
+						std::vector<bool> booleans;
+						for (auto el: arr) {
+							booleans.push_back(el.as_bool());
+						}
+						this->conf.addBooleanVector(field.name, booleans);
+					}
+				}
+
+				default: { break; }
+			}
+
+		}
+	}
+
 }
 
 bool Configure::valid(const ConfigFieldDeclaration& decl, const std::string& value) const {

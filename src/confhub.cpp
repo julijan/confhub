@@ -26,20 +26,40 @@ int main(int argc, char** argv) {
 				return 1;
 			}
 
-			// prompt config name
-			std::string configName;
-			while (configName.size() == 0) {
-				print.info("Configuration name:");
-				std::cin >> configName;
+			if (commandArgCount == 1) {
+				// interactive configure
+				// prompt config name
+				std::string configName;
+				while (configName.size() == 0) {
+					print.info("Configuration name:");
+					std::cin >> configName;
+				}
+	
+				// clear cin buffer
+				std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	
+				Configure conf(configName, argv[2]);
+				conf.interactive();
+				
+				return 0;
 			}
 
-			// clear cin buffer
-			std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+			if (commandArgCount == 3) {
+				// non-interactive configure
+				// confhub configure [confName] /path/to/declaration.conf /path/to/configuration.json
 
-			Configure conf(configName, argv[2]);
-			conf.interactive();
-			
-			return 0;
+				const char* name = argv[2];
+				const char* pathDeclaration = argv[3];
+				const char* pathConfiguration = argv[4];
+
+				try {
+					Configure conf(name, pathDeclaration);
+					conf.fromFile(pathConfiguration);
+				} catch (std::runtime_error e) {
+					print.error(std::string("Error: ") + e.what());
+				}
+				
+			}
 		}
 
 		if (strcmp(command, "declaration") == 0) {
