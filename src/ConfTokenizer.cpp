@@ -60,6 +60,21 @@ ConfToken ConfTokenizer::peekNext() {
 			break;
 		}
 
+		if (current == '[') {
+			token.type = ConfTokenType::SquareBracketOpen;
+			break;
+		}
+
+		if (current == ']') {
+			token.type = ConfTokenType::SquareBracketClose;
+			break;
+		}
+
+		if (current == ',') {
+			token.type = ConfTokenType::Comma;
+			break;
+		}
+
 		if (this->numericChar()) {
 			// found begining of a number literal
 			token.type = ConfTokenType::Number;
@@ -131,6 +146,9 @@ std::string ConfTokenizer::typeName(ConfTokenType type) const {
 		case ConfTokenType::Symbol: return "symbol";
 		case ConfTokenType::BraceOpen: return "brace open";
 		case ConfTokenType::BraceClose: return "brace close";
+		case ConfTokenType::SquareBracketOpen: return "opening square bracket";
+		case ConfTokenType::SquareBracketClose: return "closing square bracket";
+		case ConfTokenType::Comma: return "comma";
 		case ConfTokenType::Colon: return "colon";
 		case ConfTokenType::Semicolon: return "semicolon";
 		case ConfTokenType::GreaterThan: return ">";

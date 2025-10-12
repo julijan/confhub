@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -10,8 +12,11 @@ enum class ConfTokenType {
 	Number,
 	BraceOpen,
 	BraceClose,
+	SquareBracketOpen,
+	SquareBracketClose,
 	LessThan,
 	GreaterThan,
+	Comma,
 	Colon,
 	Semicolon,
 	End,
