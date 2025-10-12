@@ -202,3 +202,7 @@ std::string ConfDeclarationParser::typeToString(ConfigFieldType type) const {
 	}
 	return "unknown type";
 }
+
+std::string ConfDeclarationParser::declaration() {
+	return this->content;
+}
