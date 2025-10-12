@@ -1,12 +1,14 @@
 #include <filesystem>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "ConfRegistry.h"
 
 #include "Configuration.h"
 #include "j-utils-system.h"
 #include "j-utils-fs.h"
+#include "j-utils-string.h"
 
 void ConfRegistry::create(
 	const std::string& name,
@@ -14,7 +16,7 @@ void ConfRegistry::create(
 	const boost::json::object& configuration
 ) {
 	if (ConfRegistry::exists(name)) {
-		throw std::runtime_error("Configuration with name " + name + " aleready exists");
+		throw std::runtime_error("Configuration with name " + name + " already exists");
 	}
 
 	// make sure necessary config directories exist
@@ -57,9 +59,56 @@ std::string ConfRegistry::getDeclaration(const std::string& name) {
 	return confObj["declaration"].as_string().c_str();
 }
 
-boost::json::object ConfRegistry::getConfiguration(const std::string& name) {
+boost::json::value ConfRegistry::getConfiguration(const std::string& name) {
+	auto queryStart = name.find(".");
+	if (queryStart != std::string::npos) {
+		// name contains the query [confName].path.to.value
+		return ConfRegistry::getConfiguration(
+			name.substr(0, queryStart),
+			name.substr(queryStart + 1, name.length() - queryStart - 1)
+		);
+	}
 	boost::json::object confObj = ConfRegistry::get(name);
 	return confObj["configuration"].as_object();
+}
+
+boost::json::value ConfRegistry::getConfiguration(const std::string& name, const std::string& query) {
+	boost::json::object conf = ConfRegistry::getConfiguration(name).as_object();
+
+	boost::json::object& context = conf;
+
+	std::vector<std::string> path = utils::string::split(query, ".");
+
+	std::string pathCurrent = name;
+
+	int offset = 0;
+	for (std::string& key: path) {
+		if (!context.contains(key)) {
+			throw std::runtime_error(pathCurrent + " does not contain key " + key);
+		}
+
+		bool last = offset == path.size() - 1;
+
+		auto value = context[key];
+
+		if (last) {
+			// found the queried value
+			return value;
+		}
+
+		// switch context, making sure current value is an object
+		if (!value.is_object()) {
+			throw std::runtime_error(pathCurrent + "." + key + " is not an object");
+		}
+
+		pathCurrent += "." + key;
+
+		context = value.as_object();
+
+		offset++;
+	}
+
+	throw std::runtime_error("Couldn't get the value, unknown error");
 }
 
 bool ConfRegistry::exists(const std::string& name) {

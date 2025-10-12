@@ -20,8 +20,12 @@ public:
 	// return declaration given configuration name
 	static std::string getDeclaration(const std::string& name);
 
-	// return configuration given configuration name
-	static boost::json::object getConfiguration(const std::string& name);
+	// return entire configuration given configuration name
+	static boost::json::value getConfiguration(const std::string& name);
+
+	// return partial configuration given configuration name and query
+	// query is a dot delimited path within the configuration
+	static boost::json::value getConfiguration(const std::string& name, const std::string& query);
 
 private:
 	// check if configuration with given name exists
