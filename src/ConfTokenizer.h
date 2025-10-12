@@ -35,6 +35,9 @@ class ConfTokenizer {
 public:
 	ConfTokenizer(const std::string& config);
 
+	// allows changing the config after instance was created
+	void setConfig(const std::string& config);
+
 	// peek next token
 	ConfToken peekNext();
 

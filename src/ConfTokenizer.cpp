@@ -2,7 +2,12 @@
 #include <stdexcept>
 
 ConfTokenizer::ConfTokenizer(const std::string& config) {
+	this->setConfig(config);
+}
+
+void ConfTokenizer::setConfig(const std::string& config) {
 	this->config = config;
+	this->offset = 0;
 }
 
 ConfToken ConfTokenizer::peekNext() {
