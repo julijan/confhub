@@ -1,5 +1,6 @@
 #include "Configure.h"
 #include "ConfParser.h"
+#include "ConfRegistry.h"
 #include "print-nice/PrintNice.h"
 
 #include <iostream>
@@ -20,7 +21,20 @@ Configure::Configure(
 void Configure::interactive() {
 	this->interactive(this->parserDeclaration.configRoot, this->name);
 	// at this point, all configuration values are set
-	std::cout << this->conf.string();
+	// store to file using registry
+	PrintNice print;
+	try {
+		ConfRegistry registry;
+		registry.create(
+			this->name,
+			this->parserDeclaration.declaration(),
+			this->conf.json()
+		);
+
+		print.success("Configuration saved");
+	} catch (std::runtime_error e) {
+		print.error(std::string("Error saving configuration: ") + e.what());
+	}
 }
 
 void Configure::interactive(const ConfigContainerFieldDeclaration& container, std::string& confPath) {
