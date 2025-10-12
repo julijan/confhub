@@ -1,11 +1,13 @@
 #include <filesystem>
 #include <stdexcept>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "ConfRegistry.h"
 
 #include "Configuration.h"
+#include "Configure.h"
 #include "j-utils-system.h"
 #include "j-utils-fs.h"
 #include "j-utils-string.h"
@@ -19,20 +21,11 @@ void ConfRegistry::create(
 		throw std::runtime_error("Configuration with name " + name + " already exists");
 	}
 
-	// make sure necessary config directories exist
-	ConfRegistry::install();
-
-	// store config object to .json file
-	std::filesystem::path confFilePath = ConfRegistry::confPath(name);
-
-	boost::json::object confObject;
-	confObject["name"] = name;
-	confObject["declaration"] = declaration;
-	confObject["configuration"] = configuration;
-
-	utils::json::write(
-		confFilePath,
-		confObject
+	// write to file
+	ConfRegistry::write(
+		name,
+		declaration,
+		configuration
 	);
 }
 
@@ -52,6 +45,41 @@ boost::json::object ConfRegistry::get(const std::string& name) {
 	}
 
 	return confObj;
+}
+
+void ConfRegistry::update(
+	const std::string& name,
+	const std::string& declaration,
+	const boost::json::object& configuration
+) {
+	// write to file
+	ConfRegistry::write(
+		name,
+		declaration,
+		configuration
+	);
+}
+
+void ConfRegistry::write(
+	const std::string& name,
+	const std::string& declaration,
+	const boost::json::object& configuration
+) {
+	// make sure necessary config directories exist
+	ConfRegistry::install();
+
+	// store config object to .json file
+	std::filesystem::path confFilePath = ConfRegistry::confPath(name);
+
+	boost::json::object confObject;
+	confObject["name"] = name;
+	confObject["declaration"] = declaration;
+	confObject["configuration"] = configuration;
+
+	utils::json::write(
+		confFilePath,
+		confObject
+	);
 }
 
 std::string ConfRegistry::getDeclaration(const std::string& name) {
@@ -117,6 +145,71 @@ boost::json::value ConfRegistry::query(
 	}
 
 	throw std::runtime_error("Couldn't get the value, unknown error");
+}
+
+std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> ConfRegistry::queryDeclaration(
+	const std::string& name,
+	const std::string& query
+) {
+	std::string declaration = ConfRegistry::getDeclaration(name);
+
+	ConfDeclarationParser parser;
+	parser.setDeclaration(declaration);
+	parser.parse();
+
+	if (query == "") {return parser.configRoot;}
+
+	ConfigContainerFieldDeclaration& context = parser.configRoot;
+
+	std::vector<std::string> path = utils::string::split(query, ".");
+	int offset = 0;
+	std::string pathCurrent = name;
+
+	while (path.size() > offset) {
+		std::string keyCurrent = path[offset];
+		pathCurrent += "." + keyCurrent;
+
+		bool found = false;
+
+		for (auto& child: context.children) {
+			if (std::holds_alternative<ConfigContainerFieldDeclaration>(child)) {
+				ConfigContainerFieldDeclaration& container = std::get<ConfigContainerFieldDeclaration>(child);
+				if (container.name == keyCurrent) {
+					if (path.size() - 1 == offset) {
+						// found the container declaration queried
+						return container;
+					}
+	
+					// set context to current container
+					found = true;
+					context = container;
+					break;
+				}
+			} else {
+				ConfigFieldDeclaration field = std::get<ConfigFieldDeclaration>(child);
+				if (field.name == keyCurrent) {
+					if (path.size() - 1 > offset) {
+						// not the last key in path, but we are not within a container
+						throw std::runtime_error(
+							"Trying to access " + keyCurrent + " from " + pathCurrent + " which is not an object"
+						);
+					}
+	
+					// found the field
+					return field;
+				}
+			}
+	
+		}
+
+		offset++;
+
+		if (found) {continue;}
+
+		throw std::runtime_error("Could not find " + query + " in declaration");
+	}
+
+	throw std::runtime_error("Could not find " + query + " in declaration");
 }
 
 bool ConfRegistry::exists(const std::string& name) {

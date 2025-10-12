@@ -18,6 +18,13 @@ Configure::Configure(
 	this->parserDeclaration.parse();
 }
 
+Configure::Configure(const std::string& confName) {
+	this->name = confName;
+	ConfRegistry registry;
+	this->parserDeclaration.setDeclaration(registry.getDeclaration(confName));
+	this->parserDeclaration.parse();
+}
+
 void Configure::interactive() {
 	this->interactive(this->parserDeclaration.configRoot, this->name);
 	// at this point, all configuration values are set
@@ -54,120 +61,8 @@ void Configure::interactive(const ConfigContainerFieldDeclaration& container, st
 			this->conf.contextPrev();
 		} else {
 			// field, prompt for value
-			PrintNice print;
 			ConfigFieldDeclaration field = std::get<ConfigFieldDeclaration>(child);
-			std::string value;
-			while (true) {
-				PrintStream stream;
-
-				stream.separator = "";
-
-				stream << "Enter value for " <<
-				TextStyledToken{
-					.text = confPath.c_str(),
-					.type = OutputType::Info,
-					.style = 0
-				} <<
-				"." <<
-				TextStyledToken{
-					.text = field.name.c_str(),
-					.type = OutputType::Info,
-					.style = TextStyle::Bold
-				} <<
-				": " <<
-				TextStyledToken{
-					.text = this->parserDeclaration.typeToString(field.type).c_str(),
-					.type = OutputType::Success,
-					.style = TextStyle::Italic
-				} <<
-
-				// Array element type
-				(
-					field.type == ConfigFieldType::Array ?
-					TextStyledToken{
-						.text = ("<" + this->parserDeclaration.typeToString(field.childType) + ">").c_str(),
-						.type = OutputType::Success,
-						.style = TextStyle::Italic
-					} :
-					TextStyledToken{
-						.text = "",
-						.type = OutputType::Success,
-						.style = TextStyle::Italic
-					}
-				) <<
-
-				StreamOut();
-
-				// clear previous value
-				value = "";
-
-				// read the user provided string into value
-				std::getline(std::cin, value);
-
-				if (field.type != ConfigFieldType::Array) {
-					// simple values
-					if (this->valid(field, value)) {
-	
-						ConfTokenizer tokenizer(value);
-						ConfToken token = tokenizer.next();
-	
-						// entered value is valid, add to config
-						switch (field.type) {
-							case ConfigFieldType::Number: {
-								bool isFloat = value.find(".") != std::string::npos;
-								if (isFloat) {
-									this->conf.addNumber(field.name, std::stof(token.value));
-								} else {
-									this->conf.addNumber(field.name, std::stoi(token.value));
-								}
-								break;
-							}
-								
-							case ConfigFieldType::String: {
-								this->conf.addString(field.name, token.value);
-								break;
-							}
-	
-							case ConfigFieldType::Boolean: {
-								this->conf.addBoolean(field.name, token.value == "true");
-								break;
-							}
-	
-							default: { break; }
-						}
-	
-						// value was valid and added to conf, nothing else to be done for current field
-						break;
-					}
-				} else {
-					// array
-					try {
-						ConfParser parser(value);
-						if (field.childType == ConfigFieldType::Number) {
-							std::vector<float> values = parser.parseNumberArray();
-							this->conf.addNumberVector(field.name, values);
-							break;
-						} else if (field.childType == ConfigFieldType::String) {
-							std::vector<std::string> values = parser.parseStringArray();
-							this->conf.addStringVector(field.name, values);
-							break;
-						} else if (field.childType == ConfigFieldType::Boolean) {
-							std::vector<bool> values = parser.parseBooleanArray();
-							this->conf.addBooleanVector(field.name, values);
-							break;
-						}
-
-						throw std::runtime_error(
-							"Unhandled array element type " +
-							this->parserDeclaration.typeToString(field.childType)
-						);
-
-					} catch(std::runtime_error e) {
-						print.error(std::string("Array values error: ") + e.what());
-					}
-				}
-				print.error("Invalid value, expected " + this->parserDeclaration.typeToString(field.type));
-			}
+			this->updateFieldInteractive(field, confPath);
 		}
 	}
 }
@@ -326,6 +221,167 @@ void Configure::fromContainer(
 		}
 	}
 
+}
+
+void Configure::updateInteractive(const std::string& confPath, bool isEntry) {
+	ConfRegistry registry;
+
+	if (isEntry) {
+		// load entire current configuration to this.conf
+		this->conf.setJSON(registry.getConfiguration(this->name).as_object());
+	}
+
+	auto declarationForPath = registry.queryDeclaration(this->name, confPath);
+
+	if (std::holds_alternative<ConfigFieldDeclaration>(declarationForPath)) {
+		// updating a field
+		this->updateFieldInteractive(
+			std::get<ConfigFieldDeclaration>(declarationForPath), confPath
+		);
+	} else {
+		// updating a container
+		ConfigContainerFieldDeclaration container = std::get<ConfigContainerFieldDeclaration>(
+			declarationForPath
+		);
+		for (auto& child: container.children) {
+			std::string confPathNext = confPath == "" ? "" : confPath + ".";
+
+			if (std::holds_alternative<ConfigFieldDeclaration>(child)) {
+				confPathNext += std::get<ConfigFieldDeclaration>(child).name;
+			} else {
+				confPathNext += std::get<ConfigContainerFieldDeclaration>(child).name;
+			}
+
+			this->updateInteractive(
+				confPathNext,
+				false
+			);
+		}
+	}
+
+	if (isEntry) {
+		registry.update(
+			this->name,
+			registry.getDeclaration(this->name),
+			this->conf.json()
+		);
+	}
+}
+
+void Configure::updateFieldInteractive(const ConfigFieldDeclaration& field, const std::string& confPath) {
+	PrintNice print;
+	std::string value;
+	while (true) {
+		PrintStream stream;
+
+		stream.separator = "";
+
+		stream << "Enter value for " <<
+		TextStyledToken{
+			.text = confPath.c_str(),
+			.type = OutputType::Info,
+			.style = 0
+		} <<
+		"." <<
+		TextStyledToken{
+			.text = field.name.c_str(),
+			.type = OutputType::Info,
+			.style = TextStyle::Bold
+		} <<
+		": " <<
+		TextStyledToken{
+			.text = this->parserDeclaration.typeToString(field.type).c_str(),
+			.type = OutputType::Success,
+			.style = TextStyle::Italic
+		} <<
+
+		// Array element type
+		(
+			field.type == ConfigFieldType::Array ?
+			TextStyledToken{
+				.text = ("<" + this->parserDeclaration.typeToString(field.childType) + ">").c_str(),
+				.type = OutputType::Success,
+				.style = TextStyle::Italic
+			} :
+			TextStyledToken{
+				.text = "",
+				.type = OutputType::Success,
+				.style = TextStyle::Italic
+			}
+		) <<
+
+		StreamOut();
+
+		// clear previous value
+		value = "";
+
+		// read the user provided string into value
+		std::getline(std::cin, value);
+
+		if (field.type != ConfigFieldType::Array) {
+			// simple values
+			if (this->valid(field, value)) {
+
+				ConfTokenizer tokenizer(value);
+				ConfToken token = tokenizer.next();
+
+				// entered value is valid, add to config
+				switch (field.type) {
+					case ConfigFieldType::Number: {
+						bool isFloat = value.find(".") != std::string::npos;
+						if (isFloat) {
+							this->conf.addNumber(field.name, std::stof(token.value));
+						} else {
+							this->conf.addNumber(field.name, std::stoi(token.value));
+						}
+						break;
+					}
+						
+					case ConfigFieldType::String: {
+						this->conf.addString(field.name, token.value);
+						break;
+					}
+
+					case ConfigFieldType::Boolean: {
+						this->conf.addBoolean(field.name, token.value == "true");
+						break;
+					}
+
+					default: { break; }
+				}
+
+				// value was valid and added to conf, nothing else to be done for current field
+				break;
+			}
+		} else {
+			// array
+			try {
+				ConfParser parser(value);
+				if (field.childType == ConfigFieldType::Number) {
+					std::vector<float> values = parser.parseNumberArray();
+					this->conf.addNumberVector(field.name, values);
+					break;
+				} else if (field.childType == ConfigFieldType::String) {
+					std::vector<std::string> values = parser.parseStringArray();
+					this->conf.addStringVector(field.name, values);
+					break;
+				} else if (field.childType == ConfigFieldType::Boolean) {
+					std::vector<bool> values = parser.parseBooleanArray();
+					this->conf.addBooleanVector(field.name, values);
+					break;
+				}
+
+				throw std::runtime_error(
+					"Unhandled array element type " +
+					this->parserDeclaration.typeToString(field.childType)
+				);
+
+			} catch(std::runtime_error e) {
+				print.error(std::string("Array values error: ") + e.what());
+			}
+		}
+		print.error("Invalid value, expected " + this->parserDeclaration.typeToString(field.type));
+	}
 }
 
 bool Configure::valid(const ConfigFieldDeclaration& decl, const std::string& value) const {

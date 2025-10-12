@@ -55,10 +55,11 @@ int main(int argc, char** argv) {
 				try {
 					Configure conf(name, pathDeclaration);
 					conf.fromFile(pathConfiguration);
+					return 0;
 				} catch (std::runtime_error e) {
 					print.error(std::string("Error: ") + e.what());
+					return 1;
 				}
-				
 			}
 		}
 
@@ -96,6 +97,33 @@ int main(int argc, char** argv) {
 					conf << registry.getConfiguration(argv[2], argv[3]);
 				}
 				print.print(conf.str().c_str());
+				return 0;
+			} catch(std::runtime_error e) {
+				print.error(std::string("Error: ") + e.what());
+				return 1;
+			}
+		}
+
+		if (strcmp(command, "update") == 0) {
+			// delete configuration
+			if (commandArgCount == 0) {
+				print.error("Expected configuration name");
+				return 1;
+			}
+
+			try {
+				std::string updatePath = argv[2];
+				auto nameIndex = updatePath.find(".");
+				if (nameIndex == std::string::npos) {
+					// updating entire configuration
+					Configure conf(updatePath);
+					conf.updateInteractive("", true);
+				} else {
+					// updating a specific path
+					Configure conf(updatePath.substr(0, nameIndex));
+					conf.updateInteractive(updatePath.substr(nameIndex + 1), true);
+				}
+				print.success("Configuration updated");
 				return 0;
 			} catch(std::runtime_error e) {
 				print.error(std::string("Error: ") + e.what());

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Configure.h"
 #include <filesystem>
 #include <string>
 
 #include "json/object.hpp"
+#include <variant>
 
 class ConfRegistry {
 public:
@@ -16,6 +18,20 @@ public:
 
 	// return validated config object given configuration name
 	static boost::json::object get(const std::string& name);
+
+	// same as create, but it will overwrite existing config file
+	static void update(
+		const std::string& name,
+		const std::string& declaration,
+		const boost::json::object& configuration
+	);
+
+	// store config object to .json file
+	static void write(
+		const std::string& name,
+		const std::string& declaration,
+		const boost::json::object& configuration
+	);
 
 	// return declaration given configuration name
 	static std::string getDeclaration(const std::string& name);
@@ -32,6 +48,13 @@ public:
 		boost::json::object& conf,
 		const std::string& query,
 		const std::string& name = "" // name only used to display in errors
+	);
+
+	// query declaration of given configuration
+	// if query is an empty string returns the entire declaration object
+	static std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> queryDeclaration(
+		const std::string& name,
+		const std::string& query
 	);
 
 	static void deleteConfiguration(const std::string& name);
