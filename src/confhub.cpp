@@ -184,6 +184,16 @@ int main(int argc, char** argv) {
 			}
 		}
 
+		if (strcmp(command, "list") == 0 || strcmp(command, "ls") == 0) {
+			// list configurations
+			ConfRegistry registry;
+			std::vector<std::string> configurations = registry.list();
+			for (std::string& conf: configurations) {
+				print.print(conf);
+			}
+			return 0;
+		}
+
 	} else {
 		// command not provided
 		// TODO: show help

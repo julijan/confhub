@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <filesystem>
 #include <stdexcept>
 #include <string>
@@ -210,6 +211,23 @@ std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> ConfRegist
 	}
 
 	throw std::runtime_error("Could not find " + query + " in declaration");
+}
+
+std::vector<std::string> ConfRegistry::list() {
+	std::vector<std::string> configurations;
+
+	std::filesystem::directory_iterator it(ConfRegistry::confPath());
+
+	for (auto& entry: it) {
+		if (entry.is_regular_file()) {
+			std::string name = entry.path().filename().string();
+			configurations.push_back(name.substr(0, name.length() - 5));
+		}
+	}
+
+	std::sort(configurations.begin(), configurations.end());
+
+	return configurations;
 }
 
 bool ConfRegistry::exists(const std::string& name) {

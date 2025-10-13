@@ -57,6 +57,9 @@ public:
 		const std::string& query
 	);
 
+	// list configurations
+	static std::vector<std::string> list();
+
 	static void deleteConfiguration(const std::string& name);
 
 private:
