@@ -115,10 +115,44 @@ ConfToken ConfTokenizer::peekNext() {
 			token.type = ConfTokenType::String;
 			token.start = this->offset;
 
-			while (this->current() != '"' && !this->isEnd()) {
+			bool escapeCharPrev = this->current() == '\\';
+
+			while ((this->current() != '"' || escapeCharPrev) && !this->isEnd()) {
+
+				if (!escapeCharPrev && this->current() == '\\') {
+					// escape sequence started
+					this->offset++;
+					token.end++;
+					escapeCharPrev = true;
+					continue;
+				}
+
+				if (escapeCharPrev) {
+					// handle escape sequence
+					char currentChar = this->current();
+					if (currentChar == 'n') {
+						token.value += '\n';
+					} else if (currentChar == 't') {
+						token.value += '\t';
+					} else if (currentChar == '\\') {
+						token.value += '\\';
+					} else if (currentChar == '"') {
+						token.value += '"';
+					} else if (currentChar == 'r') {
+						token.value += '\r';
+					} else {
+						// unrecognized escape sequence, preserve char as-is
+						token.value += currentChar;
+					}
+					token.end++;
+					escapeCharPrev = false;
+					this->offset++;
+					continue;
+				}
+
 				token.value += this->current();
-				this->offset++;
 				token.end = this->offset;
+				this->offset++;
 			}
 
 			if (this->current() != '"') {
@@ -131,8 +165,7 @@ ConfToken ConfTokenizer::peekNext() {
 
 			// string complete
 			break;
-		}
-
+		}	
 	}
 
 	// restore offset where it started
@@ -173,7 +206,7 @@ char ConfTokenizer::current() {
 
 bool ConfTokenizer::ignoredChar() {
 	char current = this->current();
-	// = char ignored to allow TypeScript parsing, it is not used in delcaration/config syntax
+	// = char ignored to allow TypeScript parsing, it is not used in declaration/config syntax
 	return current == '\n' || current == ' ' || current == '\t' || current == '=';
 }
 
