@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
@@ -5,6 +6,7 @@
 
 #include "ConfDeclarationParser.h"
 #include "ConfTokenizer.h"
+#include "PrintNice.h"
 
 ConfDeclarationParser::ConfDeclarationParser() {
 	// init config root
@@ -46,6 +48,45 @@ void ConfDeclarationParser::load(const std::string& fileName) {
 		this->content += buffer + "\n";
 	}
 	stream.close();
+
+	if (fileName.ends_with(".ts")) {
+		// TypeScript file used as declaration
+		// it's assumed that only one type will be defined in this file
+		// extract the code within the outer curly braces
+
+		PrintNice print;
+		print.info(
+			"Using a TypeScript file as declaration. File is assumed to contain exactly one type definition."
+		);
+
+		this->tokenizer->setConfig(this->content);
+		size_t start = 0;
+		size_t end = 0;
+		while (true) {
+			ConfToken token = tokenizer->next();
+			if (start == 0 && token.type == ConfTokenType::BraceOpen) {
+				// found first opening curly brace
+				start = token.end;
+				continue;
+			}
+
+			if (start > 0 && token.type == ConfTokenType::BraceClose) {
+				end = token.start;
+			}
+
+			if (token.type == ConfTokenType::End) {
+				break;
+			}
+		}
+
+		if (end == 0 || start == end) {
+			throw std::runtime_error("Error extracting the configuration from a TypeScript file");
+		}
+
+		// extract the relevant substring and set it as tokenizer config
+		this->content = this->content.substr(start, end - start);
+		this->tokenizer->setConfig(this->content);
+	}
 }
 
 void ConfDeclarationParser::setDeclaration(const std::string& declaration) {
@@ -61,9 +102,16 @@ void ConfDeclarationParser::parse() {
 		ConfToken token = this->tokenizer->next();
 		ConfToken tokenNext = this->tokenizer->peekNext();
 
+		if (token.type == ConfTokenType::End) {
+			break;
+		}
+
 		// must start with a symbol
 		if (token.type != ConfTokenType::Symbol) {
-			throw std::runtime_error("Expected symbol at " + std::to_string(token.start));
+			throw std::runtime_error(
+				"Expected symbol at " + std::to_string(token.start) +
+				" found " + this->tokenizer->typeName(token.type)
+			);
 		}
 
 		name = token.value;
@@ -165,7 +213,8 @@ void ConfDeclarationParser::parse() {
 		this->context->children.push_back(field);
 
 		// if followed by closing brace switch context to parent of current context
-		if (this->tokenizer->peekNext().type == ConfTokenType::BraceClose) {
+		// multiple contexts could come in sequence, while loop ensures all contexts will be ended
+		while (this->tokenizer->peekNext().type == ConfTokenType::BraceClose) {
 			if (this->context->parent == nullptr) {
 				throw std::runtime_error("Unexpected closing brace at " + std::to_string(token.start));
 			}

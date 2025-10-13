@@ -173,7 +173,8 @@ char ConfTokenizer::current() {
 
 bool ConfTokenizer::ignoredChar() {
 	char current = this->current();
-	return current == '\n' || current == ' ' || current == '\t';
+	// = char ignored to allow TypeScript parsing, it is not used in delcaration/config syntax
+	return current == '\n' || current == ' ' || current == '\t' || current == '=';
 }
 
 bool ConfTokenizer::symbolStartChar() {
