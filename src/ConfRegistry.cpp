@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <filesystem>
+#include <fstream>
 #include <stdexcept>
 #include <string>
 #include <variant>
@@ -9,6 +10,7 @@
 
 #include "Configuration.h"
 #include "Configure.h"
+#include "JSONSerializerNice.h"
 #include "j-utils-system.h"
 #include "j-utils-fs.h"
 #include "j-utils-string.h"
@@ -77,10 +79,12 @@ void ConfRegistry::write(
 	confObject["declaration"] = declaration;
 	confObject["configuration"] = configuration;
 
-	utils::json::write(
-		confFilePath,
-		confObject
-	);
+	std::ofstream stream(confFilePath);
+	JSONSerializerNice serializer;
+
+	auto value = boost::json::value(confObject);
+	serializer.stream(value, stream);
+	stream.close();
 }
 
 std::string ConfRegistry::getDeclaration(const std::string& name) {
