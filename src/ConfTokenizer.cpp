@@ -151,8 +151,8 @@ ConfToken ConfTokenizer::peekNext() {
 				}
 
 				token.value += this->current();
-				token.end = this->offset;
 				this->offset++;
+				token.end = this->offset;
 			}
 
 			if (this->current() != '"') {
