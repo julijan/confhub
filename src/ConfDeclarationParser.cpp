@@ -7,6 +7,7 @@
 #include "ConfDeclarationParser.h"
 #include "ConfTokenizer.h"
 #include "PrintNice.h"
+#include "j-utils-string.h"
 
 ConfDeclarationParser::ConfDeclarationParser() {
 	// init config root
@@ -49,7 +50,7 @@ void ConfDeclarationParser::load(const std::string& fileName) {
 	}
 	stream.close();
 
-	if (fileName.ends_with(".ts")) {
+	if (utils::string::endsWith(fileName, ".ts")) {
 		// TypeScript file used as declaration
 		// it's assumed that only one type will be defined in this file
 		// extract the code within the outer curly braces
