@@ -69,6 +69,15 @@ private:
 	// create necessary directories (unless they already exist)
 	static void install();
 
+	// true if ~/.confhub/config exists
+	static bool installed();
+
+	// true if ~/.confhub exists
+	static bool hasAppPath();
+
+	// true if ~/.confhub/config exists
+	static bool hasConfPath();
+
 	// whatever ~/.confhub resolves to
 	static std::filesystem::path appPath();
 

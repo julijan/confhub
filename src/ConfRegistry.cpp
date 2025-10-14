@@ -220,6 +220,8 @@ std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> ConfRegist
 std::vector<std::string> ConfRegistry::list() {
 	std::vector<std::string> configurations;
 
+	if (!ConfRegistry::installed()) {return configurations;}
+
 	std::filesystem::directory_iterator it(ConfRegistry::confPath());
 
 	for (auto& entry: it) {
@@ -239,15 +241,25 @@ bool ConfRegistry::exists(const std::string& name) {
 }
 
 void ConfRegistry::install() {
-	auto appPath = ConfRegistry::appPath();
-	if (!utils::fs::exists(appPath)) {
-		utils::fs::mkdir(appPath);
+	if (!ConfRegistry::hasAppPath()) {
+		utils::fs::mkdir(ConfRegistry::appPath());
 	}
 
-	auto confPath = ConfRegistry::confPath();
-	if (!utils::fs::exists(confPath)) {
-		utils::fs::mkdir(confPath);
+	if (!ConfRegistry::hasConfPath()) {
+		utils::fs::mkdir(ConfRegistry::confPath());
 	}
+}
+
+bool ConfRegistry::installed() {
+	return ConfRegistry::hasAppPath() && ConfRegistry::hasConfPath();
+}
+
+bool ConfRegistry::hasAppPath() {
+	return utils::fs::exists(ConfRegistry::appPath());
+}
+
+bool ConfRegistry::hasConfPath() {
+	return utils::fs::exists(ConfRegistry::confPath());
 }
 
 std::filesystem::path ConfRegistry::appPath() {

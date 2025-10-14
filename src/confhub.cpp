@@ -212,6 +212,11 @@ int main(int argc, char** argv) {
 			// list configurations
 			ConfRegistry registry;
 			std::vector<std::string> configurations = registry.list();
+
+			if (configurations.size() == 0) {
+				print.print("No saved configurations.", OutputType::Normal, TextStyle::Italic);
+			}
+
 			for (std::string& conf: configurations) {
 				print.print(conf);
 			}
