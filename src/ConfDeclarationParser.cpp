@@ -225,8 +225,11 @@ void ConfDeclarationParser::parse() {
 			// consume closing brace
 			this->tokenizer->next();
 
-			// closing brace is optionally followed by semicolon, consume if it is
-			if (this->tokenizer->peekNext().type == ConfTokenType::Semicolon) {
+			// closing brace is optionally followed by semicolon or comma, consume if it is
+			if (
+				this->tokenizer->peekNext().type == ConfTokenType::Semicolon ||
+				this->tokenizer->peekNext().type == ConfTokenType::Comma
+			) {
 				this->tokenizer->next();
 			}
 		}
