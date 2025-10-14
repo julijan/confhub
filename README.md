@@ -74,6 +74,12 @@ Update declaration and interactively alter the configuration to match the new de
 Providing the path to declaration file might be a bit of a surprise. Reason for this is, confhub must know the structure of every configuration it holds to make sure the actual configuration conforms to it's declaration at all times.\
 Above command is equivalent of running `confhub configure /path/to/declaration.conf` and interactively setting all fields.
 
+### List configurations
+`confhub list` or `confhub ls` - list all saved configurations
+
+### Show declaration
+`confhub declaration [configurationName]`
+
 ## Why confhub?
 ### Why not env variables?
 1) no structure/nesting
