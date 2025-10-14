@@ -35,6 +35,12 @@ localization: {
 }
 ```
 
+> [!NOTE]
+> You can use TypeScript file as the declaration. If a declaration file has .ts extension it is automatically treated as a TypeScript file.
+> There are some limitations to using TypeScript files:
+> - file is expected to containt exactly one type definition (the configuration object)
+> - type aliases can't be used as values
+
 Create a configuration instance using the provided declaration file:\
 `confhub configure /path/to/declaration.conf`\
 You will be asked to provide the configuration name, and interactively set value for all fields.\
