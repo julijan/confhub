@@ -92,6 +92,7 @@ void ConfDeclarationParser::load(const std::string& fileName) {
 void ConfDeclarationParser::setDeclaration(const std::string& declaration) {
 	this->content = declaration;
 	this->tokenizer->setConfig(this->content);
+	this->configRoot = {};
 }
 
 void ConfDeclarationParser::parse() {
