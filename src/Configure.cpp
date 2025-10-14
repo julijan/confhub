@@ -1,11 +1,11 @@
 #include "Configure.h"
+#include "ConfLoader.h"
 #include "ConfParser.h"
 #include "ConfRegistry.h"
 #include "print-nice/PrintNice.h"
 
 #include <algorithm>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -442,16 +442,8 @@ void Configure::updateDeclaration(const std::string& declarationPathNew) {
 	}
 
 	// load contents of the new declaration file
-	std::string declarationNew;
-	std::string buffer;
-	std::fstream stream(declarationPathNew);
-	if (!stream.is_open()) {
-		throw std::runtime_error("Error opening " + declarationPathNew);
-	}
-	while (std::getline(stream, buffer)) {
-		declarationNew += buffer + "\n";
-	}
-	stream.close();
+	ConfLoader loader;
+	std::string declarationNew = loader.load(declarationPathNew);
 
 	// parse old declaration
 	std::string declarationOldString = ConfRegistry::getDeclaration(this->name);

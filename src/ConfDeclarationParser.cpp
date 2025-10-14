@@ -1,13 +1,9 @@
-#include <cstddef>
-#include <filesystem>
-#include <fstream>
 #include <stdexcept>
 #include <string>
 
 #include "ConfDeclarationParser.h"
+#include "ConfLoader.h"
 #include "ConfTokenizer.h"
-#include "PrintNice.h"
-#include "j-utils-string.h"
 
 ConfDeclarationParser::ConfDeclarationParser() {
 	// init config root
@@ -33,61 +29,9 @@ ConfDeclarationParser::~ConfDeclarationParser() {
 }
 
 void ConfDeclarationParser::load(const std::string& fileName) {
-	if (!std::filesystem::exists(fileName)) {
-		throw std::runtime_error("File " + fileName + " does not exist");
-	}
-
-	std::fstream stream;
-	stream.open(fileName);
-
-	if (!stream.is_open()) {
-		throw std::runtime_error("Error opening file for reading");
-	}
-
-	std::string buffer;
-	while (std::getline(stream, buffer)) {
-		this->content += buffer + "\n";
-	}
-	stream.close();
-
-	if (utils::string::endsWith(fileName, ".ts")) {
-		// TypeScript file used as declaration
-		// it's assumed that only one type will be defined in this file
-		// extract the code within the outer curly braces
-
-		PrintNice print;
-		print.info(
-			"Using a TypeScript file as declaration. File is assumed to contain exactly one type definition."
-		);
-
-		this->tokenizer->setConfig(this->content);
-		size_t start = 0;
-		size_t end = 0;
-		while (true) {
-			ConfToken token = tokenizer->next();
-			if (start == 0 && token.type == ConfTokenType::BraceOpen) {
-				// found first opening curly brace
-				start = token.end;
-				continue;
-			}
-
-			if (start > 0 && token.type == ConfTokenType::BraceClose) {
-				end = token.start;
-			}
-
-			if (token.type == ConfTokenType::End) {
-				break;
-			}
-		}
-
-		if (end == 0 || start == end) {
-			throw std::runtime_error("Error extracting the configuration from a TypeScript file");
-		}
-
-		// extract the relevant substring and set it as tokenizer config
-		this->content = this->content.substr(start, end - start);
-		this->tokenizer->setConfig(this->content);
-	}
+	ConfLoader loader;
+	this->content = loader.load(fileName);
+	this->tokenizer->setConfig(this->content);
 }
 
 void ConfDeclarationParser::setDeclaration(const std::string& declaration) {
