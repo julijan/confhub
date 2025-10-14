@@ -199,8 +199,8 @@ void ConfDeclarationParser::parse() {
 		}
 
 		token = this->tokenizer->next();
-		if (token.type != ConfTokenType::Semicolon) {
-			throw std::runtime_error("Expected semicolon at " + std::to_string(token.start));
+		if (token.type != ConfTokenType::Semicolon && token.type != ConfTokenType::Comma) {
+			throw std::runtime_error("Expected semicolon or comma at " + std::to_string(token.start));
 		}
 
 		ConfigFieldDeclaration field;
