@@ -23,8 +23,13 @@ void JSONSerializerNice::object(boost::json::object& val, size_t depth) {
 
 void JSONSerializerNice::array(boost::json::array &arr) {
 	this->content << "[\n";
+	bool first = true;
 	for (auto val: arr) {
+		if (!first) {
+			this->content << ", ";
+		}
 		this->toString(val);
+		first = false;
 	}
 	this->content << "\n]";
 }
