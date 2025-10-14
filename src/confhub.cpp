@@ -131,6 +131,30 @@ int main(int argc, char** argv) {
 			}
 		}
 
+		if (strcmp(command, "update-decl") == 0) {
+			// delete configuration
+			if (commandArgCount == 0) {
+				print.error("Expected configuration name");
+				return 1;
+			}
+
+			if (commandArgCount == 1) {
+				print.error("Expected path to updated declaration");
+				return 1;
+			}
+
+			try {
+				std::string confName = argv[2];
+				std::string declPath = argv[3];
+				Configure conf(confName);
+				conf.updateDeclaration(declPath);
+				return 0;
+			} catch(std::runtime_error e) {
+				print.error(std::string("Error: ") + e.what());
+				return 1;
+			}
+		}
+
 		if (strcmp(command, "delete") == 0) {
 			// delete configuration
 			if (commandArgCount == 0) {

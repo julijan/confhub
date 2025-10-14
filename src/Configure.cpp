@@ -3,6 +3,9 @@
 #include "ConfRegistry.h"
 #include "print-nice/PrintNice.h"
 
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -75,7 +78,8 @@ void Configure::fromFile(const std::string& confFile) {
 	Configure::fromContainer(
 		this->parserDeclaration.configRoot,
 		conf.as_object(),
-		this->name
+		this->name,
+		false
 	);
 
 	// store to config file
@@ -97,7 +101,8 @@ void Configure::fromFile(const std::string& confFile) {
 void Configure::fromContainer(
 	const ConfigContainerFieldDeclaration& declaration,
 	boost::json::object& values,
-	const std::string& confPath
+	const std::string& confPath,
+	bool promptMissing
 ) {
 
 	for (auto& child: declaration.children) {
@@ -106,7 +111,11 @@ void Configure::fromContainer(
 			ConfigContainerFieldDeclaration containerNext = std::get<ConfigContainerFieldDeclaration>(child);
 
 			if (!values.contains(containerNext.name)) {
-				throw std::runtime_error("Missing key " + confPath + "." + containerNext.name);
+				if (promptMissing) {
+					values[containerNext.name] = {};
+				} else {
+					throw std::runtime_error("Missing key " + confPath + "." + containerNext.name);
+				}
 			}
 
 			auto valuesNext = values[containerNext.name];
@@ -123,7 +132,8 @@ void Configure::fromContainer(
 			this->fromContainer(
 				containerNext,
 				valuesNext.as_object(),
-				confPathNext
+				confPathNext,
+				promptMissing
 			);
 
 			// when current container is configured, jump to previous context
@@ -134,6 +144,16 @@ void Configure::fromContainer(
 
 			// make sure key exists in values
 			if (!values.contains(field.name)) {
+
+				if (promptMissing) {
+					// value missing, prompt enabled, prompt for value
+					this->updateFieldInteractive(
+						field,
+						confPath
+					);
+					continue;
+				}
+
 				throw std::runtime_error("Missing key " + confPath + "." + field.name);
 			}
 
@@ -145,7 +165,11 @@ void Configure::fromContainer(
 					if (!value.is_number()) {
 						throw std::runtime_error(confPath + " expected to be a number");
 					}
-					this->conf.addNumber(field.name, (float)value.as_int64());
+					if (value.kind() == boost::json::kind::double_) {
+						this->conf.addNumber(field.name, (float)value.as_double());
+					} else {
+						this->conf.addNumber(field.name, (float)value.as_int64());
+					}
 					break;
 				}
 					
@@ -197,7 +221,11 @@ void Configure::fromContainer(
 					if (field.childType == ConfigFieldType::Number) {
 						std::vector<float> numbers;
 						for (auto el: arr) {
-							numbers.push_back(el.as_int64());
+							if (el.kind() == boost::json::kind::double_) {
+								numbers.push_back(el.as_double());
+							} else {
+								numbers.push_back(el.as_int64());
+							}
 						}
 						this->conf.addNumberVector(field.name, numbers);
 					} else if (field.childType == ConfigFieldType::String) {
@@ -405,4 +433,116 @@ bool Configure::valid(const ConfigFieldDeclaration& decl, const std::string& val
 	}
 
 	return false;
+}
+
+void Configure::updateDeclaration(const std::string& declarationPathNew) {
+
+	if (!std::filesystem::exists(declarationPathNew)) {
+		throw std::runtime_error("File " + declarationPathNew + " not found");
+	}
+
+	// load contents of the new declaration file
+	std::string declarationNew;
+	std::string buffer;
+	std::fstream stream(declarationPathNew);
+	if (!stream.is_open()) {
+		throw std::runtime_error("Error opening " + declarationPathNew);
+	}
+	while (std::getline(stream, buffer)) {
+		declarationNew += buffer + "\n";
+	}
+	stream.close();
+
+	// parse old declaration
+	std::string declarationOldString = ConfRegistry::getDeclaration(this->name);
+	this->parserDeclaration.setDeclaration(declarationOldString);
+	this->parserDeclaration.parse();
+	ConfigContainerFieldDeclaration declarationOld = this->parserDeclaration.configRoot;
+
+	// set old configuration
+	boost::json::object config = ConfRegistry::getConfiguration(name).as_object();
+	this->conf.setJSON(config);
+
+	// set new declaration to parser
+	this->parserDeclaration.setDeclaration(declarationNew);
+	this->parserDeclaration.parse();
+
+	// update configuration to store new declaration
+	ConfRegistry registry;
+	registry.update(this->name, declarationNew, config);
+
+	this->fromContainer(
+		this->parserDeclaration.configRoot,
+		config,
+		this->name,
+		true
+	);
+
+	// update config file
+	PrintNice print;
+	try {
+		ConfRegistry registry;
+		registry.update(
+			this->name,
+			this->parserDeclaration.declaration(),
+			this->conf.json()
+		);
+
+		print.success("Declaration updated");
+	} catch (std::runtime_error e) {
+		print.error(std::string("Error saving configuration: ") + e.what());
+	}
+}
+
+std::string Configure::fieldName(std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> field) {
+	if (this->isContainer(field)) {
+		return std::get<ConfigContainerFieldDeclaration>(field).name;
+	}
+
+	return std::get<ConfigFieldDeclaration>(field).name;
+}
+
+ConfigFieldType Configure::fieldType(std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> field) {
+	if (this->isContainer(field)) {
+		return std::get<ConfigContainerFieldDeclaration>(field).type;
+	}
+	return std::get<ConfigFieldDeclaration>(field).type;
+}
+
+bool Configure::isContainer(std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> field) {
+	return std::holds_alternative<ConfigContainerFieldDeclaration>(field);
+}
+
+bool Configure::hasField(const ConfigContainerFieldDeclaration& container, const std::string& fieldName) {
+	auto posExisting = std::find_if(
+		container.children.begin(),
+		container.children.end(),
+		[this, &fieldName](auto& child) {
+			return this->fieldName(child) == fieldName;
+		}
+	);
+	return posExisting != container.children.end();
+}
+
+std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> Configure::getField(
+	const ConfigContainerFieldDeclaration& container,
+	const std::string& fieldName
+) {
+	auto posExisting = std::find_if(
+		container.children.begin(),
+		container.children.end(),
+		[this, &fieldName](auto& child) {
+			return this->fieldName(child) == fieldName;
+		}
+	);
+	if (posExisting == container.children.end()) {
+		// not found
+		throw std::runtime_error("getField: no such field " + fieldName);
+	}
+
+	if (this->isContainer(*posExisting)) {
+		return std::get<ConfigContainerFieldDeclaration>(*posExisting);
+	}
+
+	return std::get<ConfigFieldDeclaration>(*posExisting);
 }
