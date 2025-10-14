@@ -168,7 +168,7 @@ void Configure::fromContainer(
 					if (value.kind() == boost::json::kind::double_) {
 						this->conf.addNumber(field.name, (float)value.as_double());
 					} else {
-						this->conf.addNumber(field.name, (float)value.as_int64());
+						this->conf.addNumber(field.name, (int)value.as_int64());
 					}
 					break;
 				}
