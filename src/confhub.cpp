@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
 					// query provided, narrow to queried
 					conf << registry.getConfiguration(argv[2], argv[3]);
 				}
-				print.print(conf.str().c_str());
+				std::cout << conf.str().c_str();
 				return 0;
 			} catch(std::runtime_error e) {
 				print.error(std::string("Error: ") + e.what());
