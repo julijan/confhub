@@ -48,10 +48,14 @@ This is useful if you aready have a JSON file with all values defined, for examp
 `confhub query [configurationName]` - retrieve entire configuration object as JSON\
 `confhub query [configurationName].localization.language` - return a single field (in this case a string)
 
-### Update a configuration field:
+### Update configuration value:
 `confhub update [configurationName]` - interactively update all fields\
 `confhub update [configurationName].localization` - interactively update all fields nested in localization\
 `confhub update [configurationName].localization.language` - interactively update localization.language
+
+### Update configuration declaration:
+`confhub update-decl [configurationName] /path/to/declaration`\
+Update declaration and interactively alter the configuration to match the new declaration.
 
 ### Delete a configuration instance
 `confhub delete [configurationName]`
