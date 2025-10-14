@@ -165,7 +165,10 @@ ConfToken ConfTokenizer::peekNext() {
 
 			// string complete
 			break;
-		}	
+		}
+
+		// if we got here, this is an unknown token
+		break;
 	}
 
 	// restore offset where it started
