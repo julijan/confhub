@@ -4,7 +4,6 @@
 #include "ConfRegistry.h"
 #include "print-nice/PrintNice.h"
 
-#include <algorithm>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -49,7 +48,7 @@ void Configure::interactive() {
 
 void Configure::interactive(const ConfigContainerFieldDeclaration& container, std::string& confPath) {
 	for (auto& child: container.children) {
-		if (std::holds_alternative<ConfigContainerFieldDeclaration>(child)) {
+		if (this->isContainer(child)) {
 			// another container, recurse
 			ConfigContainerFieldDeclaration containerNext = std::get<ConfigContainerFieldDeclaration>(child);
 			
@@ -106,7 +105,7 @@ void Configure::fromContainer(
 ) {
 
 	for (auto& child: declaration.children) {
-		if (std::holds_alternative<ConfigContainerFieldDeclaration>(child)) {
+		if (this->isContainer(child)) {
 			// another container, recurse
 			ConfigContainerFieldDeclaration containerNext = std::get<ConfigContainerFieldDeclaration>(child);
 
@@ -261,7 +260,7 @@ void Configure::updateInteractive(const std::string& confPath, bool isEntry) {
 
 	auto declarationForPath = registry.queryDeclaration(this->name, confPath);
 
-	if (std::holds_alternative<ConfigFieldDeclaration>(declarationForPath)) {
+	if (!this->isContainer(declarationForPath)) {
 		// updating a field
 		this->updateFieldInteractive(
 			std::get<ConfigFieldDeclaration>(declarationForPath), confPath
@@ -273,12 +272,7 @@ void Configure::updateInteractive(const std::string& confPath, bool isEntry) {
 		);
 		for (auto& child: container.children) {
 			std::string confPathNext = confPath == "" ? "" : confPath + ".";
-
-			if (std::holds_alternative<ConfigFieldDeclaration>(child)) {
-				confPathNext += std::get<ConfigFieldDeclaration>(child).name;
-			} else {
-				confPathNext += std::get<ConfigContainerFieldDeclaration>(child).name;
-			}
+			confPathNext += this->fieldName(child);
 
 			this->updateInteractive(
 				confPathNext,
@@ -503,38 +497,4 @@ ConfigFieldType Configure::fieldType(std::variant<ConfigContainerFieldDeclaratio
 
 bool Configure::isContainer(std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> field) {
 	return std::holds_alternative<ConfigContainerFieldDeclaration>(field);
-}
-
-bool Configure::hasField(const ConfigContainerFieldDeclaration& container, const std::string& fieldName) {
-	auto posExisting = std::find_if(
-		container.children.begin(),
-		container.children.end(),
-		[this, &fieldName](auto& child) {
-			return this->fieldName(child) == fieldName;
-		}
-	);
-	return posExisting != container.children.end();
-}
-
-std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> Configure::getField(
-	const ConfigContainerFieldDeclaration& container,
-	const std::string& fieldName
-) {
-	auto posExisting = std::find_if(
-		container.children.begin(),
-		container.children.end(),
-		[this, &fieldName](auto& child) {
-			return this->fieldName(child) == fieldName;
-		}
-	);
-	if (posExisting == container.children.end()) {
-		// not found
-		throw std::runtime_error("getField: no such field " + fieldName);
-	}
-
-	if (this->isContainer(*posExisting)) {
-		return std::get<ConfigContainerFieldDeclaration>(*posExisting);
-	}
-
-	return std::get<ConfigFieldDeclaration>(*posExisting);
 }

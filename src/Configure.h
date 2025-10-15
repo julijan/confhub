@@ -55,17 +55,6 @@ private:
 	// true if given field is a container
 	bool isContainer(std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> field);
 
-	// check if given container has the given field
-	bool hasField(const ConfigContainerFieldDeclaration& container, const std::string& fieldName);
-
-	// get field from given container
-	// should be checked if field exists using hasField first
-	// if field does not exist this throws an error
-	std::variant<ConfigContainerFieldDeclaration, ConfigFieldDeclaration> getField(
-		const ConfigContainerFieldDeclaration& container,
-		const std::string& fieldName
-	);
-
 	ConfDeclarationParser parserDeclaration;
 	std::string name;
 	Configuration conf;
