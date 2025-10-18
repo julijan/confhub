@@ -263,16 +263,13 @@ bool ConfRegistry::hasConfPath() {
 }
 
 std::filesystem::path ConfRegistry::appPath() {
-	return utils::fs::extendPath<1>(
-		utils::system::appDataDir(),
-		{ ".confhub" }
-	);
+	return utils::system::confPath("confhub");
 }
 
 std::filesystem::path ConfRegistry::confPath() {
-	return utils::fs::extendPath<2>(
-		utils::system::appDataDir(),
-		{ ".confhub", "config" }
+	return utils::fs::extendPath<1>(
+		utils::system::confPath("confhub"),
+		{ "config" }
 	);
 }
 
